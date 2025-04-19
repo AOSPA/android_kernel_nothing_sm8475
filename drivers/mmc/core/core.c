@@ -1003,7 +1003,8 @@ void mmc_set_initial_state(struct mmc_host *host)
 
 	mmc_set_ios(host);
 
-	mmc_crypto_set_initial_state(host);
+	if (!host->ops->dont_reprogram_allkeys)
+		mmc_crypto_set_initial_state(host);
 }
 EXPORT_SYMBOL_GPL(mmc_set_initial_state);
 
@@ -2351,6 +2352,9 @@ void mmc_start_host(struct mmc_host *host)
 
 void __mmc_stop_host(struct mmc_host *host)
 {
+	if (host->rescan_disable)
+		return;
+
 	if (host->slot.cd_irq >= 0) {
 		mmc_gpio_set_cd_wake(host, false);
 		disable_irq(host->slot.cd_irq);
