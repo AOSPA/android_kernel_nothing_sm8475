@@ -1973,6 +1973,13 @@ int msm_pinctrl_probe(struct platform_device *pdev,
 
 	platform_set_drvdata(pdev, pctrl);
 
+#ifdef CONFIG_HIBERNATION
+	register_syscore_ops(&msm_pinctrl_pm_ops);
+	ret = register_pm_notifier(&pinctrl_notif_block);
+	if (ret)
+		return ret;
+#endif
+
 #if IS_ENABLED(CONFIG_PINCTRL_MSM_S2IDLE_DUMP)
 	msm_pinctrl_s2idle_debug(pdev, true);
 #endif /* CONFIG_PINCTRL_MSM_S2IDLE_DUMP */
