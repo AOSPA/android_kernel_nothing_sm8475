@@ -999,12 +999,14 @@ static ssize_t aw20036_single_brightness_store(struct device *dev,
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 	struct aw20036 *aw20036 = container_of(led_cdev, struct aw20036, cdev);
 
+	mutex_lock(&aw20036->lock);
 	aw20036_hw_reinit(aw20036);
 
 	if (sscanf(buf, "%d %d", &databuf[0], &databuf[1]) == 2) {
 		aw20036_reg_page_cfg(aw20036, AW20036_REG_PAGE2);
 		aw20036_i2c_write(aw20036, databuf[0], databuf[1]);
 	}
+	mutex_unlock(&aw20036->lock);
 	return len;
 }
 
@@ -1022,6 +1024,7 @@ static ssize_t aw20036_all_white_brightness_store(struct device *dev,
 	sscanf(buf, "%d", &val);
 	pr_info("%s: %d\n", __func__, val);
 
+	mutex_lock(&aw20036->lock);
 	aw20036_hw_reinit(aw20036);
 
 	for (i = 0; i < 13; i ++) {data_1[i] = val;}
@@ -1030,6 +1033,7 @@ static ssize_t aw20036_all_white_brightness_store(struct device *dev,
 	aw20036_reg_page_cfg(aw20036, AW20036_REG_PAGE2);
 	aw20036_i2c_write_block(aw20036, 0x00, 13, data_1); /*led(0-12)*/
 	aw20036_i2c_write_block(aw20036, 0x0E, 22, data_2); /*led(14-35)*/
+	mutex_unlock(&aw20036->lock);
 
 	return len;
 }
@@ -1048,6 +1052,7 @@ static ssize_t aw20036_all_brightness_store(struct device *dev,
 	sscanf(buf, "%d", &val);
 	pr_info("%s: %d\n", __func__, val);
 
+	mutex_lock(&aw20036->lock);
 	aw20036_hw_reinit(aw20036);
 
 #ifdef POWER_SAVE_MODE
@@ -1068,6 +1073,7 @@ static ssize_t aw20036_all_brightness_store(struct device *dev,
 	/*Set pag 2 PAD0-PAD35 */
 	aw20036_reg_page_cfg(aw20036, AW20036_REG_PAGE2);
 	aw20036_i2c_write_block(aw20036, 0x00, 36, data);
+	mutex_unlock(&aw20036->lock);
 	return len;
 }
 
@@ -1110,6 +1116,7 @@ static ssize_t aw20036_frame_brightness_store(struct device *dev,
 
 	pm_stay_awake(aw20036->dev);
 
+	mutex_lock(&aw20036->lock);
 	aw20036_hw_reinit(aw20036);
 
 	if(frame_num ==5){
@@ -1189,6 +1196,7 @@ static ssize_t aw20036_frame_brightness_store(struct device *dev,
 	aw20036_reg_page_cfg(aw20036, AW20036_REG_PAGE2);
 	aw20036_i2c_write_block(aw20036, 0x00, 13, brightness_1); /*led(0-12)*/
 	aw20036_i2c_write_block(aw20036, 0x0E, 22, brightness_2); /*led(14-35)*/
+	mutex_unlock(&aw20036->lock);
 	pm_relax(aw20036->dev);
 
 	return len;
@@ -2082,6 +2090,7 @@ static int aw20036_i2c_probe(struct i2c_client *i2c,
 	i2c_set_clientdata(i2c, aw20036);
 
 	mutex_init(&aw20036->cfg_lock);
+	mutex_init(&aw20036->lock);
 
 	/* aw20036 rst & int */
 	if (np) {

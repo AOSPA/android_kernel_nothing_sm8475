@@ -222,6 +222,7 @@ struct aw20036 {
 	struct hrtimer fw_timer;
 #endif
 	struct mutex cfg_lock;
+	struct mutex lock;
 
 	int reset_gpio;
 #ifdef CONFIG_OF
