@@ -1077,37 +1077,40 @@ static ssize_t aw20036_frame_brightness_store(struct device *dev,
 {
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 	struct aw20036 *aw20036 = container_of(led_cdev, struct aw20036, cdev);
-	char ch = ' ';
-	const char *p;
+	char *input, *p, *token;
 	int val=0;
 	unsigned int frame_brightness[33];
-	int frame_num =0;
+	unsigned int frame_num = 0;
 	unsigned int i, num;
 	unsigned char brightness_1[13] = {0};
 	unsigned char brightness_2[22] = {0};
 
 	pr_debug("%s: enter\n", __func__);
 
+	input = kstrndup(buf, len, GFP_KERNEL);
+	if (!input)
+		return -ENOMEM;
+
+	p = input;
+	while ((token = strsep(&p, " \t\n\r")) != NULL) {
+		if (!*token)
+			continue;
+		if (frame_num >= ARRAY_SIZE(frame_brightness) ||
+		    kstrtoint(token, 10, &val) || val < 0 || val > 255) {
+			kfree(input);
+			return -EINVAL;
+		}
+		frame_brightness[frame_num++] = val;
+	}
+	kfree(input);
+
+	if (frame_num != 5 && frame_num != 9 && frame_num != 16 &&
+	    frame_num != 33)
+		return -EINVAL;
+
 	pm_stay_awake(aw20036->dev);
 
 	aw20036_hw_reinit(aw20036);
-
-	frame_num = 0;
-	if(sscanf(buf, "%d", &val) ==1){
-		frame_brightness[frame_num] = val;
-		p = strchr(buf, ch);
-		while(p){
-			p = p+1;
-			if(sscanf(p, "%d", &val) ==1){
-				frame_num++;
-				frame_brightness[frame_num]= val;
-				p = strchr(p, ch);
-			}else{
-				break;
-			}
-		}
-		frame_num ++;
-	}
 
 	if(frame_num ==5){
 		//int led0[2] = {12,0};
